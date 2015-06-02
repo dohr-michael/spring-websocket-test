@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test WebSockets</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <script src="stomp.js"></script>
+    <script language="javascript" type="text/javascript">
+
+        var sender = null;
+        var messageExtractor = null;
+        var errorExtractor = null;
+
+        // Events
+
+        function onOpen(obj) {
+            display("CONNECTED");
+        }
+
+        function onMessage(obj) {
+            display("RECEIVE : " + messageExtractor(obj));
+        }
+
+        function onError(obj) {
+            display('<span style="color: red;">ERROR : </span> ' + errorExtractor(obj));
+        }
+
+        // Method.
+
+        function send() {
+            var message = document.getElementById("textId").value;
+            display("SEND : " + message);
+            sender(message);
+        }
+
+        function display(message) {
+            var element = document.createElement("p");
+            element.innerHTML = message;
+            document.getElementById("messageDivId").appendChild(element);
+        }
+
+        window.addEventListener("load", function () {
+            // Create the web socket.
+            var socket = new WebSocket("ws://localhost:8080/broker");
+            var client = Stomp.over(socket);
+
+            client.connect({}, function (frame) {
+                onOpen(frame);
+                client.subscribe("/topic/broker", onMessage);
+
+            }, onError);
+
+            sender = function (message) {
+                client.send("/app/broker", {}, message);
+            };
+            messageExtractor = function (obj) {
+                return obj.body;
+            };
+            errorExtractor = function (obj) {
+                return obj.headers.message;
+            };
+        }, false);
+    </script>
+</head>
+<body>
+<h2 style="text-align: center;">Client WebSocket Echo</h2>
+
+<div style="text-align: center;">
+    <form action="">
+        <input id="textId" name="message" value="" type="text">&nbsp;
+        <input onclick="send()" value="Envoyer" type="button">
+    </form>
+</div>
+<div id="messageDivId"></div>
+</body>
+</html>
